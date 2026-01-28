@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>buffering_dreams</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="window">
+
+    <!-- SIDEBAR (IFRAME) -->
+    <iframe
+      src="sidebar.html"
+      style="width:220px;height:100vh;border:none;">
+    </iframe>
+
+    <div class="content">
+
+      <div class="block">
+        <p>&gt; boot sequence complete.</p>
+        <p>&gt; welcome.</p>
+      </div>
+
+      <div class="block">
+<pre class="ascii glitch" data-text="__________        _____  _____            .__                
+\______   \__ ___/ ____\/ ____\___________|__| ____    ____  
+ |    |  _/  |  \   __\\   __\/ __ \_  __ \  |/    \  / ___\ 
+ |    |   \  |  /|  |   |  | \  ___/|  | \/  |   |  \/ /_/  >
+ |______  /____/ |__|   |__|  \___  >__|  |__|___|  /\___  / 
+        \/                        \/              \//_____/  
+             ________                                        
+             \______ \_______   ____ _____    _____   ______ 
+              |    |  \_  __ \_/ __ \\__  \  /     \ /  ___/ 
+              |    `   \  | \/\  ___/ / __ \|  Y Y  \\___ \  
+             /_______  /__|    \___  >____  /__|_|  /____  > 
+                     \/            \/     \/      \/     \/">
+__________        _____  _____            .__                
+\______   \__ ___/ ____\/ ____\___________|__| ____    ____  
+ |    |  _/  |  \   __\\   __\/ __ \_  __ \  |/    \  / ___\ 
+ |    |   \  |  /|  |   |  | \  ___/|  | \/  |   |  \/ /_/  >
+ |______  /____/ |__|   |__|  \___  >__|  |__|___|  /\___  / 
+        \/                        \/              \//_____/  
+             ________                                        
+             \______ \_______   ____ _____    _____   ______ 
+              |    |  \_  __ \_/ __ \\__  \  /     \ /  ___/ 
+              |    `   \  | \/\  ___/ / __ \|  Y Y  \\___ \  
+             /_______  /__|    \___  >____  /__|_|  /____  > 
+                     \/            \/     \/      \/     \/
+</pre>
+      </div>
+
+      <div class="block">
+        <p>This is normal text output. Write anything here.</p>
+      </div>
+
+      <div class="block">
+        <p>&gt; end of output.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TYPEWRITER EFFECT -->
+  <script>
+    const content = document.querySelector('.content');
+
+    function collectTextNodes(node, list = []) {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+        list.push(node);
+      }
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        !node.classList.contains('ascii')
+      ) {
+        node.childNodes.forEach(child => collectTextNodes(child, list));
+      }
+      return list;
+    }
+
+    const nodes = collectTextNodes(content).map(node => {
+      const text = node.textContent;
+      node.textContent = '';
+      return { node, text };
+    });
+
+    let nodeIndex = 0;
+    let charIndex = 0;
+
+    function type() {
+      if (nodeIndex >= nodes.length) return;
+
+      const current = nodes[nodeIndex];
+      current.node.textContent += current.text[charIndex++];
+
+      if (charIndex >= current.text.length) {
+        nodeIndex++;
+        charIndex = 0;
+      }
+
+      setTimeout(type, 15);
+    }
+
+    type();
+  </script>
+
+  <!-- CRT ENTRY REFRESH -->
+  <script>
+    const win = document.querySelector('.window');
+    win.classList.add('refresh');
+    setTimeout(() => win.classList.remove('refresh'), 500);
+  </script>
+
+</body>
+</html>

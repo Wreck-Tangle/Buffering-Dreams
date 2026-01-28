@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>buffering_dreams :: chat</title>
+<link rel="stylesheet" href="style.css">
+
+<style>
+.chat-wrapper {
+  width: 50%;
+  min-width: 420px;
+  margin-left: 12px;
+}
+
+.chat-box {
+  border: 1px solid #00ff66;
+  padding: 8px;
+  background: #000;
+  height: 60vh;
+  overflow-y: auto;
+  position: relative;
+
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.15;
+  white-space: pre;
+}
+
+.chat-line {
+  position: absolute;
+  white-space: pre;
+}
+
+.chat-input {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+textarea,
+.name-gate-box input {
+  background: #000;
+  color: #00ff66;
+  border: 1px solid #00ff66;
+  padding: 6px;
+  font-family: monospace;
+  resize: none;
+  line-height: 1.2;
+
+  caret-color: #00ff66;
+  animation: blinkCaret 1s steps(1) infinite;
+}
+
+textarea {
+  flex: 1;
+  height: 90px;
+}
+
+@keyframes blinkCaret {
+  0% { caret-color: #00ff66; }
+  50% { caret-color: transparent; }
+  100% { caret-color: #00ff66; }
+}
+
+button {
+  background: #000;
+  color: #00ff66;
+  border: 1px solid #00ff66;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: monospace;
+}
+button:hover {
+  background: #00ff66;
+  color: #000;
+}
+
+/* HALFTONE MASK */
+.name-gate {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(#000 1px, transparent 1px),
+    radial-gradient(#000 1px, transparent 1px);
+  background-size: 4px 4px;
+  background-position: 0 0, 2px 2px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.name-gate-box {
+  border: 1px solid #00ff66;
+  padding: 16px;
+  width: 280px;
+  background: #000;
+  color: #00ff66;
+  font-family: monospace;
+}
+</style>
+</head>
+
+<body>
+
+<!-- HANDLE GATE -->
+<div class="name-gate" id="nameGate">
+  <div class="name-gate-box">
+    <p>&gt; ENTER HANDLE</p>
+    <input id="nameInput" autocomplete="off">
+    <button id="confirmName">CONFIRM</button>
+  </div>
+</div>
+
+<div class="window">
+
+  <!-- SIDEBAR WILL BE MOUNTED AFTER HANDLE CONFIRM -->
+  <div id="sidebarMount"></div>
+
+  <div class="content">
+    <div class="block">
+      <p>&gt; public message board</p>
+      <p>&gt; enter = send | shift+enter = newline</p>
+      <p>&gt; /color #hex</p>
+    </div>
+
+    <div class="chat-wrapper">
+      <div class="block chat-box" id="chatBox"></div>
+
+      <div class="chat-input">
+        <textarea id="messageInput" disabled></textarea>
+        <button id="sendBtn" disabled>SEND</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyD5XTk4TOcIIgLC4iTMBzIF__exxFPASsI",
+  authDomain: "buffering-dreams-d0c0b.firebaseapp.com",
+  projectId: "buffering-dreams-d0c0b"
+});
+const db = firebase.firestore();
+
+const chatBox = document.getElementById("chatBox");
+const input = document.getElementById("messageInput");
+const send = document.getElementById("sendBtn");
+const nameGate = document.getElementById("nameGate");
+const nameInput = document.getElementById("nameInput");
+
+const LINE_GAP = 14;
+const H_GAP = 8;
+let items = [];
+
+let identity = {
+  name: localStorage.getItem("chat_name"),
+  color: localStorage.getItem("chat_color") || "#00ff66"
+};
+
+function mountSidebar() {
+  document.getElementById("sidebarMount").innerHTML = `
+    <iframe src="sidebar.html"
+            style="width:220px;height:100vh;border:none;"></iframe>
+  `;
+}
+
+function showNameGate() {
+  nameGate.style.display = "flex";
+  nameInput.focus();
+  nameInput.select();
+}
+
+if (!identity.name) {
+  showNameGate();
+} else {
+  mountSidebar();
+  input.disabled = false;
+  send.disabled = false;
+  input.style.color = identity.color;
+}
+
+function confirmHandle() {
+  const n = nameInput.value.trim();
+  if (!n) return;
+
+  identity.name = n;
+  localStorage.setItem("chat_name", n);
+  localStorage.setItem("chat_color", identity.color);
+
+  nameGate.style.display = "none";
+  mountSidebar();
+
+  input.disabled = false;
+  send.disabled = false;
+  input.style.color = identity.color;
+  input.focus();
+}
+
+confirmName.onclick = confirmHandle;
+nameInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    confirmHandle();
+  }
+});
+
+function frameMessage(name, text) {
+  const MAX = 64;
+
+  function wrap(line) {
+    const out = [];
+    while (line.length > MAX) {
+      out.push(line.slice(0, MAX));
+      line = line.slice(MAX);
+    }
+    out.push(line);
+    return out;
+  }
+
+  const msgLines = text.split("\n").flatMap(wrap);
+  const all = [name, ...msgLines];
+  const width = Math.max(...all.map(l => l.length));
+
+  const center = l => {
+    const p = width - l.length;
+    return " ".repeat(Math.floor(p/2)) + l + " ".repeat(Math.ceil(p/2));
+  };
+
+  const top = "+" + "-".repeat(width + 2) + "+";
+  const underline = `| ${"-".repeat(width)} |`;
+
+  return [
+    top,
+    `| ${center(name)} |`,
+    underline,
+    ...msgLines.map(l => `| ${center(l)} |`),
+    top
+  ].join("\n");
+}
+
+function place(el) {
+  const boxW = chatBox.clientWidth;
+  const w = el.offsetWidth;
+  const h = el.offsetHeight;
+
+  const xs = [0];
+  items.forEach(it => xs.push(it.x + it.w + H_GAP));
+
+  let best = { x: 0, y: Infinity };
+
+  xs.forEach(x => {
+    if (x + w > boxW) return;
+
+    const overlaps = items.filter(it =>
+      !(x + w <= it.x || x >= it.x + it.w)
+    );
+
+    const y = overlaps.length
+      ? Math.max(...overlaps.map(it => it.y + it.h + LINE_GAP))
+      : 0;
+
+    if (y < best.y) best = { x, y };
+  });
+
+  el.style.left = best.x + "px";
+  el.style.top  = best.y + "px";
+  items.push({ x: best.x, y: best.y, w, h });
+
+  chatBox.style.minHeight =
+    Math.max(...items.map(it => it.y + it.h)) + "px";
+}
+
+function renderMessage(data) {
+  const div = document.createElement("div");
+  div.className = "chat-line";
+  div.textContent = frameMessage(data.name, data.text);
+  div.style.color = data.color;
+  chatBox.appendChild(div);
+  place(div);
+}
+
+db.collection("messages")
+.orderBy("created")
+.onSnapshot(snap => {
+  chatBox.innerHTML = "";
+  items = [];
+  snap.forEach(d => renderMessage(d.data()));
+});
+
+function sendMsg() {
+  const t = input.value.trim();
+  if (!t) return;
+
+  if (t.startsWith("/color")) {
+    const m = t.match(/#([0-9A-Fa-f]{6})/);
+    if (m) {
+      identity.color = "#" + m[1];
+      localStorage.setItem("chat_color", identity.color);
+      input.style.color = identity.color;
+    }
+    input.value = "";
+    return;
+  }
+
+  db.collection("messages").add({
+    name: identity.name,
+    color: identity.color,
+    text: t,
+    created: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  input.value = "";
+}
+
+send.onclick = sendMsg;
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMsg();
+  }
+});
+</script>
+
+</body>
+</html>

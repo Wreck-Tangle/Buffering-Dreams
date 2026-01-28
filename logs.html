@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>buffering_dreams :: logs</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    .log-list button {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      color: #00ff66;
+      font-family: monospace;
+      text-align: left;
+      padding: 4px 0;
+      cursor: pointer;
+    }
+
+    .log-list button:hover {
+      background: #00ff66;
+      color: #000;
+    }
+
+    .log-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 50vw;
+      height: 100vh;
+      background: #000;
+      border-left: 2px solid #00ff66;
+      padding: 15px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    .log-panel img {
+      max-width: 100%;
+      display: block;
+      margin: 10px 0;
+      border: 1px solid #00ff66;
+    }
+
+    input[type="password"] {
+      background: #000;
+      color: #00ff66;
+      border: 1px solid #00ff66;
+      font-family: monospace;
+      padding: 5px;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .year-group {
+      display: none;
+      padding-left: 10px;
+    }
+
+    .year-button {
+      font-weight: bold;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="window">
+
+    <!-- SIDEBAR (IFRAME) -->
+    <iframe
+      src="sidebar.html"
+      style="width:220px;height:100vh;border:none;">
+    </iframe>
+
+    <div class="content">
+      <div class="block log-list">
+        <p>&gt; logs index</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="log-panel">
+    <pre class="log-content"></pre>
+  </div>
+
+  <!-- LOAD LOG DATA -->
+  <script src="logs-data.js"></script>
+
+  <script>
+    const list = document.querySelector('.log-list');
+    const panel = document.querySelector('.log-content');
+    const win = document.querySelector('.window');
+
+    let typingTimer = null;
+    let refreshTimer = null;
+    let activeToken = 0;
+    let busy = false;
+
+    function cancelAll() {
+      if (typingTimer) clearInterval(typingTimer);
+      if (refreshTimer) clearTimeout(refreshTimer);
+      typingTimer = null;
+      refreshTimer = null;
+      panel.innerHTML = '';
+    }
+
+    function crtRefresh(cb) {
+      win.classList.add('refresh');
+      refreshTimer = setTimeout(() => {
+        win.classList.remove('refresh');
+        if (cb) cb();
+      }, 500);
+    }
+
+    function typeText(text, token) {
+      let i = 0;
+      typingTimer = setInterval(() => {
+        if (token !== activeToken) {
+          clearInterval(typingTimer);
+          return;
+        }
+        panel.append(text[i++]);
+        if (i >= text.length) clearInterval(typingTimer);
+      }, 15);
+    }
+
+    function renderImages(images, token) {
+      images.forEach(src => {
+        if (token !== activeToken) return;
+        const img = document.createElement('img');
+        img.src = src;
+        panel.appendChild(img);
+      });
+    }
+
+    function openLog(log) {
+      if (busy) return;
+      busy = true;
+      activeToken++;
+      const token = activeToken;
+
+      cancelAll();
+
+      if (log.protected) {
+        panel.textContent = "> password required\n";
+        const input = document.createElement('input');
+        input.type = "password";
+        panel.appendChild(input);
+        input.focus();
+
+        input.addEventListener('keydown', e => {
+          if (e.key !== "Enter" || token !== activeToken) return;
+          if (input.value === log.password) {
+            cancelAll();
+            crtRefresh(() => {
+              typeText(log.content, token);
+              setTimeout(() => {
+                renderImages(log.images, token);
+                busy = false;
+              }, log.content.length * 15 + 100);
+            });
+          } else {
+            panel.textContent += "\n> access denied\n";
+            panel.appendChild(input);
+            input.value = '';
+            input.focus();
+            busy = false;
+          }
+        });
+
+        busy = false;
+        return;
+      }
+
+      crtRefresh(() => {
+        typeText(log.content, token);
+        setTimeout(() => {
+          renderImages(log.images, token);
+          busy = false;
+        }, log.content.length * 15 + 100);
+      });
+    }
+
+    const logsByYear = {};
+    logs.forEach(log => {
+      const year = log.date.split('-')[0];
+      if (!logsByYear[year]) logsByYear[year] = [];
+      logsByYear[year].push(log);
+    });
+
+    Object.keys(logsByYear)
+      .sort((a, b) => b - a)
+      .forEach(year => {
+        const yearBtn = document.createElement('button');
+        yearBtn.textContent = `> ${year}`;
+        yearBtn.className = 'year-button';
+
+        const yearGroup = document.createElement('div');
+        yearGroup.className = 'year-group';
+
+        yearBtn.onclick = () => {
+          const expanded = yearGroup.style.display === 'block';
+          yearGroup.style.display = expanded ? 'none' : 'block';
+          yearBtn.textContent = `${expanded ? '>' : 'v'} ${year}`;
+        };
+
+        logsByYear[year].forEach(log => {
+          const btn = document.createElement('button');
+          btn.textContent = `[${log.id}] ${log.title}`;
+          btn.onclick = () => openLog(log);
+          yearGroup.appendChild(btn);
+        });
+
+        list.appendChild(yearBtn);
+        list.appendChild(yearGroup);
+      });
+
+    win.classList.add('refresh');
+    setTimeout(() => win.classList.remove('refresh'), 500);
+  </script>
+
+</body>
+</html>

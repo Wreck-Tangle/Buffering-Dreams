@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #00ff66;
+      font-family: monospace;
+    }
+
+    .sidebar {
+      width: 100%;
+      height: 100vh;
+      border-right: 2px solid #00ff66;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .nav a {
+      display: block;
+      padding: 4px 0;
+      text-decoration: none;
+      color: #00ff66;
+    }
+
+    .nav a.offline:hover {
+      background: #ff0000;
+      color: #ffffff;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sidebar">
+    <h1>SYSTEM MENU</h1>
+
+    <div class="nav">
+      <a href="index.html" target="_parent">ONLINE &gt; home</a>
+      <a href="#" target="_parent">OFFLINE &gt; about</a>
+      <a href="logs.html" target="_parent">ONLINE &gt; logs</a>
+      <a href="chat.html" target="_parent">ONLINE &gt; chat</a>
+      <a href="#" target="_parent">OFFLINE &gt; links</a>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.nav a').forEach(link => {
+      if (link.textContent.startsWith('OFFLINE')) {
+        link.classList.add('offline');
+        link.removeAttribute('href');
+        link.textContent = link.textContent.replace('OFFLINE ', '');
+      } else if (link.textContent.startsWith('ONLINE')) {
+        link.textContent = link.textContent.replace('ONLINE ', '');
+      }
+    });
+  </script>
+</body>
+</html>

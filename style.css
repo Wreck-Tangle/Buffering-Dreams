@@ -1,0 +1,119 @@
+/* ===== BASE TERMINAL LOOK ===== */
+
+body {
+  margin: 0;
+  background: #000;
+  color: #00ff66;
+  font-family: monospace;
+}
+
+/* ===== TERMINAL WINDOW ===== */
+
+.window {
+  position: relative;
+  display: flex;
+  height: 100vh;
+  border: 2px solid #00ff66;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* ===== CRT ENTRY MASK (ONLY DURING REFRESH) ===== */
+
+.window.refresh::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #000;
+  z-index: 3000;
+  pointer-events: none;
+
+  animation: crtWipe 0.45s steps(14) forwards;
+}
+
+@keyframes crtWipe {
+  from {
+    transform: translateY(0%);
+  }
+  to {
+    transform: translateY(101%);
+  }
+}
+
+/* ===== LAYOUT ===== */
+
+.sidebar {
+  width: 220px;
+  border-right: 2px solid #00ff66;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.sidebar h1 {
+  font-size: 14px;
+  margin: 0 0 10px 0;
+}
+
+.nav a {
+  display: block;
+  color: #00ff66;
+  text-decoration: none;
+  padding: 4px 0;
+}
+
+.nav a:hover {
+  background: #00ff66;
+  color: #000;
+}
+
+.content {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.block {
+  margin-bottom: 20px;
+}
+
+/* ===== ASCII + GLITCH ===== */
+
+.ascii {
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: pre;
+  position: relative;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.glitch::before {
+  animation: glitchTop 3s infinite;
+}
+
+.glitch::after {
+  animation: glitchBottom 2.5s infinite;
+}
+
+@keyframes glitchTop {
+  0%,100% { clip-path: inset(0); transform: translate(0); color:#00ffaa; }
+  20% { clip-path: inset(0 0 60% 0); transform: translate(-2px,-1px); color:#ff0055; }
+  40% { clip-path: inset(0 0 40% 0); transform: translate(2px,1px); color:#00aaff; }
+}
+
+@keyframes glitchBottom {
+  0%,100% { clip-path: inset(0); transform: translate(0); color:#00cc55; }
+  25% { clip-path: inset(60% 0 0 0); transform: translate(1px,2px); color:#ffaa00; }
+  45% { clip-path: inset(40% 0 0 0); transform: translate(-1px,-2px); color:#cc00ff; }
+}
